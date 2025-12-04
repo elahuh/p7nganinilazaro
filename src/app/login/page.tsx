@@ -1,9 +1,7 @@
 "use client";
 
-import React from "react";
 import { useRouter } from "next/navigation";
 import { useState, FormEvent } from "react";
-import { saveToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,44 +9,30 @@ import { API_BASE } from "@/lib/config";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useTheme } from "@/lib/theme-context";
 
-
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
   const { theme } = useTheme();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  async function handleLogin(e: FormEvent) {
+  async function handleRegister(e: FormEvent) {
     e.preventDefault();
     setError("");
 
-    const trimmedUsername = username.trim();
-    const trimmedPassword = password.trim();
-    if (!trimmedUsername || !trimmedPassword) {
-      setError("Please enter both username and password.");
-      return;
-    }
-
-    const res = await fetch(`${API_BASE}/login`, {
+    const res = await fetch(`${API_BASE}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: trimmedUsername, password: trimmedPassword }),
+      body: JSON.stringify({ username, password }),
     });
 
     const data = await res.json();
     if (!res.ok) {
-      setError(data.message || "Login failed");
+      setError(data.message || "Register failed");
       return;
     }
 
-    if (!data || !data.accessToken) {
-      setError("Login failed: no access token returned.");
-      return;
-    }
-
-    saveToken(data.accessToken);
-    router.push("/dashboard");
+    router.push("/");
   }
 
   return (
@@ -73,12 +57,12 @@ export default function LoginPage() {
               className="text-2xl font-bold text-center flex-1"
               style={{ color: "var(--accent)" }}
             >
-              Sign In
+              Create Account
             </h1>
             <ThemeToggle />
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleRegister} className="space-y-4">
             <Input
               placeholder="Username"
               value={username}
@@ -112,18 +96,18 @@ export default function LoginPage() {
               }}
               type="submit"
             >
-              Login
+              Register
             </Button>
           </form>
 
-          <p className="mt-4 text-center text-sm" style={{ color: theme === "light" ? "#111827" : "#94a3b8" }}>
-            Don't have an account?{" "}
+          <p className="mt-4 text-center text-sm" style={{ color: theme === "light" ? "#6b7280" : "#94a3b8" }}>
+            Already have an account?{" "}
             <button
-              onClick={() => router.push("/login")}
+              onClick={() => router.push("/")}
               style={{ color: "var(--accent)", textDecoration: "none", cursor: "pointer", fontWeight: "500" }}
               className="hover:underline"
             >
-              Sign Up
+              Sign In
             </button>
           </p>
         </CardContent>

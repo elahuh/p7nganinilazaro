@@ -1,0 +1,88 @@
+/* Light mode - default */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --primary-dark: #4f46e5;
+  --background: #ffffff;
+  --surface: #f9fafb;
+  --surface-variant: #f3f4f6;
+  --on-surface: #111827;
+  --on-surface-variant: #6b7280;
+  --border: #e5e7eb;
+}
+
+/* Dark mode */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --primary: #818cf8;
+  --primary-light: #a5b4fc;
+  --primary-dark: #6366f1;
+  --background: #111827;
+  --surface: #1f2937;
+  --surface-variant: #374151;
+  --on-surface: #f9fafb;
+  --on-surface-variant: #d1d5db;
+  --border: #4b5563;
+}
+
+/* Color variants - Indigo (default) */
+:root[data-color="indigo"] {
+  --accent: #6366f1;
+  --accent-light: #818cf8;
+  --accent-dark: #4f46e5;
+}
+
+/* Blue */
+:root[data-color="blue"] {
+  --accent: #3b82f6;
+  --accent-light: #60a5fa;
+  --accent-dark: #1d4ed8;
+}
+
+/* Purple */
+:root[data-color="purple"] {
+  --accent: #a855f7;
+  --accent-light: #d8b4fe;
+  --accent-dark: #9333ea;
+}
+
+/* Rose */
+:root[data-color="rose"] {
+  --accent: #f43f5e;
+  --accent-light: #fb7185;
+  --accent-dark: #e11d48;
+}
+
+/* Emerald */
+:root[data-color="emerald"] {
+  --accent: #10b981;
+  --accent-light: #6ee7b7;
+  --accent-dark: #059669;
+}
+
+/* Cyan */
+:root[data-color="cyan"] {
+  --accent: #06b6d4;
+  --accent-light: #22d3ee;
+  --accent-dark: #0891b2;
+}
+
+/* Global styles */
+body {
+  background-color: var(--background);
+  color: var(--on-surface);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Smooth transitions for theme switching */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Override specific elements that shouldn't transition */
+input,
+textarea,
+select {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
