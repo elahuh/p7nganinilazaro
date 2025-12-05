@@ -219,10 +219,11 @@ export default function CreatePage() {
               <CardContent className="text-center text-sm text-gray-500">No items to display</CardContent>
             </Card>
           ) : (
-            items.map((item) => {
+            items.map((item, idx) => {
               const id = item[getPrimaryKey()];
+              const reactKey = id !== undefined && id !== null ? `${entityType}-${id}` : `${entityType}-idx-${idx}`;
               return (
-                <Card key={id}>
+                <Card key={reactKey}>
                   <CardContent>
                     {editingId === id ? (
                       <div className="space-y-3">

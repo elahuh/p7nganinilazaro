@@ -334,14 +334,17 @@ export default function GetPage() {
                 </CardContent>
               </Card>
             ) : (
-              items.map((item) => {
+              items.map((item, idx) => {
                 const primaryKey = getPrimaryKey();
                 const id = item[primaryKey];
                 const displayName = getDisplayName();
 
+                // Ensure a stable, unique key: prefer real id, otherwise fall back to entity+index
+                const reactKey = id !== undefined && id !== null ? `${entityType}-${id}` : `${entityType}-idx-${idx}`;
+
                 return (
                   <Card
-                    key={id}
+                    key={reactKey}
                     style={{ backgroundColor: theme === "light" ? "#ffffff" : "#1f2937" }}
                   >
                     <CardContent className="p-6">

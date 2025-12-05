@@ -1,215 +1,284 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { getToken } from "@/lib/auth";
 import { useTheme } from "@/lib/theme-context";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://ela-gqf5.onrender.com";
+import { fetchWithAuth } from "@/lib/api";
 
 export default function CreatePage() {
   const { theme } = useTheme();
   const [entityType, setEntityType] = useState("users");
-  const [formData, setFormData] = useState<any>({});
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("user");
+  const [positionCode, setPositionCode] = useState("");
+  const [positionName, setPositionName] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [created, setCreated] = useState<any>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev: any) => ({ ...prev, [name]: value }));
-  };
+  const [items, setItems] = useState<any[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editData, setEditData] = useState<any>({});
 
-  const handleCreate = async (e: FormEvent) => {
+  useEffect(() => {
+    fetchAllItems();
+  }, [entityType]);
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
 
     try {
-      const token = getToken();
-      if (!token) {
-        setMessage("Error: No authentication token found. Please log in again.");
-        setLoading(false);
-        return;
-      }
+      let endpoint = entityType === "users" ? "/users" : "/positions";
+      const payload = entityType === "users"
+        ? { username, password, role }
+        : { position_code: positionCode, position_name: positionName };
 
-      const endpoint = entityType === "users" ? "/users" : "/positions";
-      const response = await fetch(`${API_BASE}${endpoint}`, {
+      const response = await fetchWithAuth(endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        let errorMsg = response.statusText;
-        try {
-          const error = await response.json();
-          errorMsg = error.message || error.error || response.statusText;
-        } catch (e) {
-          // Response wasn't JSON
-        }
-        setMessage(`Error ${response.status}: ${errorMsg}`);
+        let body: any;
+        try { body = await response.json(); } catch { body = await response.text(); }
+        setMessage(`Error: ${body?.error || body?.message || response.statusText}`);
         setLoading(false);
         return;
       }
 
       const data = await response.json();
-      setMessage(`✅ ${data.message || "Created successfully"}`);
-      setFormData({});
+      setMessage(entityType === "users" ? "User created successfully!" : "Position created successfully!");
+      setCreated(data);
+      // reset form
+      setUsername("");
+      setPassword("");
+      setRole("user");
+      setPositionCode("");
+      setPositionName("");
+      await fetchAllItems();
     } catch (error: any) {
-      setMessage(`Failed: ${error.message}`);
+      setMessage(`Failed to create: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchAllItems = async () => {
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const endpoint = entityType === "users" ? "/users" : "/positions";
+      const resp = await fetchWithAuth(endpoint, { method: "GET" });
+      if (!resp.ok) {
+        let body: any;
+        try { body = await resp.json(); } catch { body = await resp.text(); }
+        setMessage(`❌ Error ${resp.status}: ${body?.message || body}`);
+        setItems([]);
+        setLoading(false);
+        return;
+      }
+
+      const data = await resp.json();
+      setItems(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      setMessage(`Failed to fetch: ${err.message}`);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdate = async (id: string | number) => {
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const endpoint = entityType === "users" ? `/users/${id}` : `/positions/${id}`;
+      const resp = await fetchWithAuth(endpoint, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editData),
+      });
+
+      if (!resp.ok) {
+        let body: any;
+        try { body = await resp.json(); } catch { body = await resp.text(); }
+        setMessage(`❌ Error ${resp.status}: ${body?.message || body}`);
+        setLoading(false);
+        return;
+      }
+
+      setMessage("✅ Updated successfully");
+      setEditingId(null);
+      setEditData({});
+      await fetchAllItems();
+    } catch (error: any) {
+      setMessage(`Update failed: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string | number) => {
+    if (!confirm("Are you sure you want to delete this?")) return;
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const endpoint = entityType === "users" ? `/users/${id}` : `/positions/${id}`;
+      const resp = await fetchWithAuth(endpoint, { method: "DELETE" });
+      if (!resp.ok) {
+        let body: any;
+        try { body = await resp.json(); } catch { body = await resp.text(); }
+        setMessage(`❌ Error ${resp.status}: ${body?.message || body}`);
+        setLoading(false);
+        return;
+      }
+
+      setMessage("✅ Deleted successfully");
+      await fetchAllItems();
+    } catch (error: any) {
+      setMessage(`Delete failed: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getPrimaryKey = () => (entityType === "users" ? "id" : "position_id");
+
   return (
-    <div className="p-8" style={{ color: theme === "light" ? "#111827" : "#f9fafb" }}>
-      <h1 className="text-3xl font-bold mb-6" style={{ color: "var(--accent)" }}>
-        Create New Entity
-      </h1>
+    <div className="min-h-screen p-6" style={{ backgroundColor: theme === "light" ? "#f9fafb" : "#0f172a" }}>
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-4xl font-bold mb-4" style={{ color: theme === "light" ? "#111827" : "#e0e7ff" }}>
+          Create / Manage
+        </h1>
 
-      <Card className="max-w-2xl" style={{ backgroundColor: theme === "light" ? "#ffffff" : "#1f2937" }}>
-        <CardContent className="p-6">
-          <form onSubmit={handleCreate} className="space-y-4">
-            {/* Entity Type Selection */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Entity Type</label>
-              <select
-                value={entityType}
-                name="type"
-                className="w-full p-2 rounded border"
-                style={{
-                  backgroundColor: theme === "light" ? "#f3f4f6" : "#111827",
-                  borderColor: theme === "light" ? "#d1d5db" : "#4b5563",
-                  color: theme === "light" ? "#111827" : "#f9fafb",
-                }}
-                onChange={(e) => {
-                  setEntityType(e.target.value);
-                  setFormData({});
-                }}
-              >
-                <option value="users">Users</option>
-                <option value="positions">Positions</option>
-              </select>
-            </div>
+        <div className="mb-6">
+          <label className="block text-sm font-medium mb-2">Entity Type</label>
+          <select value={entityType} onChange={(e) => setEntityType(e.target.value)} className="p-2 rounded border">
+            <option value="users">Users</option>
+            <option value="positions">Positions</option>
+          </select>
+        </div>
 
-            {/* Users Fields */}
-            {entityType === "users" && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Username</label>
-                  <Input
-                    type="text"
-                    name="username"
-                    placeholder="Enter username"
-                    value={formData.username || ""}
-                    onChange={handleInputChange}
-                    style={{
-                      backgroundColor: theme === "light" ? "#f3f4f6" : "#111827",
-                      borderColor: theme === "light" ? "#d1d5db" : "#4b5563",
-                      color: theme === "light" ? "#111827" : "#f9fafb",
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Password</label>
-                  <Input
-                    type="password"
-                    name="password"
-                    placeholder="Enter password"
-                    value={formData.password || ""}
-                    onChange={handleInputChange}
-                    style={{
-                      backgroundColor: theme === "light" ? "#f3f4f6" : "#111827",
-                      borderColor: theme === "light" ? "#d1d5db" : "#4b5563",
-                      color: theme === "light" ? "#111827" : "#f9fafb",
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Role</label>
-                  <select
-                    name="role"
-                    value={formData.role || "user"}
-                    onChange={handleInputChange}
-                    className="w-full p-2 rounded border"
-                    style={{
-                      backgroundColor: theme === "light" ? "#f3f4f6" : "#111827",
-                      borderColor: theme === "light" ? "#d1d5db" : "#4b5563",
-                      color: theme === "light" ? "#111827" : "#f9fafb",
-                    }}
-                  >
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-              </>
-            )}
+        <form onSubmit={handleCreate} className="space-y-6 mb-6">
+          {entityType === "users" ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-2">Username</label>
+                <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Password</label>
+                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Role</label>
+                <select value={role} onChange={(e) => setRole(e.target.value)} className="p-2 rounded border">
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-2">Position Code</label>
+                <Input value={positionCode} onChange={(e) => setPositionCode(e.target.value)} placeholder="Position code" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Position Name</label>
+                <Input value={positionName} onChange={(e) => setPositionName(e.target.value)} placeholder="Position name" />
+              </div>
+            </>
+          )}
 
-            {/* Positions Fields */}
-            {entityType === "positions" && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Position Code</label>
-                  <Input
-                    type="text"
-                    name="position_code"
-                    placeholder="e.g., MGR001"
-                    value={formData.position_code || ""}
-                    onChange={handleInputChange}
-                    style={{
-                      backgroundColor: theme === "light" ? "#f3f4f6" : "#111827",
-                      borderColor: theme === "light" ? "#d1d5db" : "#4b5563",
-                      color: theme === "light" ? "#111827" : "#f9fafb",
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Position Name</label>
-                  <Input
-                    type="text"
-                    name="position_name"
-                    placeholder="e.g., Manager"
-                    value={formData.position_name || ""}
-                    onChange={handleInputChange}
-                    style={{
-                      backgroundColor: theme === "light" ? "#f3f4f6" : "#111827",
-                      borderColor: theme === "light" ? "#d1d5db" : "#4b5563",
-                      color: theme === "light" ? "#111827" : "#f9fafb",
-                    }}
-                  />
-                </div>
-              </>
-            )}
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? "Creating..." : `Create ${entityType === "users" ? "User" : "Position"}`}
+          </Button>
+        </form>
 
-            {message && (
-              <p
-                className="p-2 rounded text-sm"
-                style={{
-                  backgroundColor: message.includes("Error") ? "#fee2e2" : "#dcfce7",
-                  color: message.includes("Error") ? "#991b1b" : "#166534",
-                }}
-              >
-                {message}
-              </p>
-            )}
+        {message && (
+          <div className="mb-4 p-3 rounded" style={{ backgroundColor: message.includes("Error") ? "#fee2e2" : "#dcfce7" }}>
+            {message}
+          </div>
+        )}
 
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full text-white rounded transition-transform hover:scale-[1.02]"
-              style={{ backgroundColor: "var(--accent)" }}
-            >
-              {loading ? "Creating..." : "Create"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+        <h2 className="text-2xl font-semibold mb-3">All {entityType === "users" ? "Users" : "Positions"}</h2>
+
+        <div className="space-y-4">
+          {items.length === 0 ? (
+            <Card>
+              <CardContent className="text-center text-sm text-gray-500">No items to display</CardContent>
+            </Card>
+          ) : (
+            items.map((item, idx) => {
+              const id = item[getPrimaryKey()];
+              const reactKey = id !== undefined && id !== null ? `${entityType}-${id}` : `${entityType}-idx-${idx}`;
+              return (
+                <Card key={reactKey}>
+                  <CardContent>
+                    {editingId === id ? (
+                      <div className="space-y-3">
+                        {entityType === "users" ? (
+                          <>
+                            <Input value={editData.username || item.username || ""} onChange={(e) => setEditData({ ...editData, username: e.target.value })} />
+                            <Input type="password" placeholder="New password (leave empty to keep)" onChange={(e) => setEditData({ ...editData, password: e.target.value })} />
+                            <select value={editData.role || item.role || "user"} onChange={(e) => setEditData({ ...editData, role: e.target.value })} className="p-2 rounded border">
+                              <option value="user">User</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                          </>
+                        ) : (
+                          <>
+                            <Input value={editData.position_code || item.position_code || ""} onChange={(e) => setEditData({ ...editData, position_code: e.target.value })} />
+                            <Input value={editData.position_name || item.position_name || ""} onChange={(e) => setEditData({ ...editData, position_name: e.target.value })} />
+                          </>
+                        )}
+
+                        <div className="flex gap-2">
+                          <Button onClick={() => handleUpdate(id)} disabled={loading} className="flex-1 text-white rounded" style={{ backgroundColor: "#10b981" }}>Save</Button>
+                          <Button onClick={() => setEditingId(null)} disabled={loading} className="flex-1" style={{ backgroundColor: "#6b7280", color: "white" }}>Cancel</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="mb-3">
+                          {entityType === "users" ? (
+                            <>
+                              <p><strong>ID:</strong> {item.id}</p>
+                              <p><strong>Username:</strong> {item.username}</p>
+                              <p><strong>Role:</strong> {item.role}</p>
+                            </>
+                          ) : (
+                            <>
+                              <p><strong>Position ID:</strong> {item.position_id}</p>
+                              <p><strong>Code:</strong> {item.position_code}</p>
+                              <p><strong>Name:</strong> {item.position_name}</p>
+                            </>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button onClick={() => { setEditingId(id); setEditData(item); }} disabled={loading} className="flex-1 text-white" style={{ backgroundColor: "var(--accent)" }}>Edit</Button>
+                          <Button onClick={() => handleDelete(id)} disabled={loading} className="flex-1 text-white" style={{ backgroundColor: "#ef4444" }}>Delete</Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </div>
+      </div>
     </div>
   );
 }
