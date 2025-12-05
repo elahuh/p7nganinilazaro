@@ -43,24 +43,10 @@ export default function DashboardLayout({
 
   const navItems = [
     { key: "overview", label: "Overview", href: "/dashboard" },
-    {
-      key: "reports",
-      label: "Reports",
-      href: "/dashboard/reports",
-      children: [
-        { key: "reports-all", label: "All Reports", href: "/dashboard/reports" },
-        { key: "reports-new", label: "Create Report", href: "/dashboard/reports/new" },
-      ],
-    },
-    {
-      key: "settings",
-      label: "Settings",
-      href: "/dashboard/settings",
-      children: [
-        { key: "settings-profile", label: "Profile", href: "/dashboard/settings/profile" },
-        { key: "settings-prefs", label: "Preferences", href: "/dashboard/settings/preferences" },
-      ],
-    },
+    { key: "create", label: "Create", href: "/dashboard/create" },
+    { key: "get", label: "Get, Update, Delete", href: "/dashboard/get" },
+    { key: "delete", label: "Delete", href: "/dashboard/delete" },
+    { key: "test", label: "🔧 Test API", href: "/dashboard/test" },
   ];
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -93,66 +79,30 @@ export default function DashboardLayout({
 
         <nav className="flex flex-col gap-1">
           {navItems.map((item) => {
-            const isActiveParent = pathname === item.href;
-            const hasChildren = !!item.children?.length;
+            const isActive = pathname === item.href;
 
             return (
-              <div key={item.key} className="w-full">
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={() => (hasChildren ? toggleExpand(item.key) : router.push(item.href))}
-                    aria-expanded={hasChildren ? !!expanded[item.key] : undefined}
-                    className={`w-full text-left px-3 py-2 rounded-lg transition flex items-center justify-between gap-2 ${
-                      isActiveParent
-                        ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md"
-                        : "text-slate-300 hover:bg-slate-700/40"
-                    }`}
-                  >
-                    {collapsed ? (
-                      <span className="w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium text-white" title={item.label}>
-                        <span className="flex flex-col gap-1">
-                          <span className="block w-4 h-[2px] bg-slate-300/80" />
-                          <span className="block w-4 h-[2px] bg-slate-300/80" />
-                          <span className="block w-4 h-[2px] bg-slate-300/80" />
-                        </span>
-                      </span>
-                    ) : (
-                      <span className="truncate">{item.label}</span>
-                    )}
-                    {hasChildren && !collapsed && (
-                      <ChevronDown
-                        size={16}
-                        className={`${expanded[item.key] ? "transform rotate-180" : ""} transition-transform text-slate-300`}
-                      />
-                    )}
-                  </button>
-                </div>
-
-                {hasChildren && !collapsed && (
-                  <div
-                    className={`pl-4 mt-2 overflow-hidden transition-[max-height,opacity] duration-300 ${
-                      expanded[item.key] ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
-                    }`}
-                    aria-hidden={!expanded[item.key]}
-                  >
-                    <div className="flex flex-col gap-1">
-                      {item.children!.map((child) => (
-                        <button
-                          key={child.key}
-                          onClick={() => router.push(child.href)}
-                          className={`px-3 py-2 rounded-md text-left text-sm transition w-full ${
-                            pathname === child.href
-                              ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white"
-                              : "text-slate-300 hover:bg-slate-700/30"
-                          }`}
-                        >
-                          {child.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+              <button
+                key={item.key}
+                onClick={() => router.push(item.href)}
+                className={`w-full text-left px-3 py-2 rounded-lg transition flex items-center gap-2 ${
+                  isActive
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md"
+                    : "text-slate-300 hover:bg-slate-700/40"
+                }`}
+              >
+                {collapsed ? (
+                  <span className="w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium text-white" title={item.label}>
+                    <span className="flex flex-col gap-1">
+                      <span className="block w-4 h-[2px] bg-slate-300/80" />
+                      <span className="block w-4 h-[2px] bg-slate-300/80" />
+                      <span className="block w-4 h-[2px] bg-slate-300/80" />
+                    </span>
+                  </span>
+                ) : (
+                  <span className="truncate">{item.label}</span>
                 )}
-              </div>
+              </button>
             );
           })}
         </nav>
@@ -161,7 +111,7 @@ export default function DashboardLayout({
 
         <div className="mt-4">
           <Button
-            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-md"
+            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-md absolute bottom-6 left-0 right-0"
             onClick={handleLogout}
           >
             Logout

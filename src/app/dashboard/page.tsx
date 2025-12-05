@@ -63,7 +63,7 @@ export default function DashboardPage() {
           transition={{ duration: 0.6 }}
         >
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
-            Welcome back, {username}
+            Welcome back, {username} , P.S. Personal Dashboard ko Ni Ser
           </h1>
           <p className="text-sm text-slate-400 mt-2">Deep-dive into current market signals</p>
         </motion.div>

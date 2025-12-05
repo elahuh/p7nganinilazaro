@@ -30,7 +30,7 @@ export default function LoginPage() {
       return;
     }
 
-    const res = await fetch(`${API_BASE}/login`, {
+    const res = await fetch(`${API_BASE}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: trimmedUsername, password: trimmedPassword }),
@@ -47,7 +47,7 @@ export default function LoginPage() {
       return;
     }
 
-    saveToken(data.accessToken);
+    saveToken(data.accessToken, data.refreshToken);
     router.push("/dashboard");
   }
 
